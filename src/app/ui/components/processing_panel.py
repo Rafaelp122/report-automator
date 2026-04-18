@@ -1,16 +1,21 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QProgressBar, QPushButton, QWidget, QHBoxLayout, QLineEdit, QLabel, QFileDialog, QTableWidget, QTableWidgetItem, QHeaderView
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QProgressBar, QPushButton, QHBoxLayout
 from PySide6.QtCore import Qt, Signal, Slot
+
 from src.app.ui.components.log_view import LogView
+from src.app.ui.components.file_selector import FileSelector
+from src.app.ui.components.mapping_table import MappingTable
 
 class ProcessingPanel(QFrame):
     """
     Painel central que encapsula a lógica visual de processamento e validação.
+    Refatorado para usar sub-componentes especializados.
     """
     start_requested = Signal()
     revalidate_requested = Signal()
     config_save_requested = Signal(dict)
     import_config_requested = Signal()
     export_config_requested = Signal(dict)
+    origin_selected = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -24,34 +29,18 @@ class ProcessingPanel(QFrame):
         layout.setSpacing(10)
 
         # File Selection Area
-        file_selection_layout = QVBoxLayout()
-        file_selection_layout.setSpacing(5)
+        self.input_origin = FileSelector("Planilha de Origem (Dados):")
+        self.input_origin.file_selected.connect(self.origin_selected.emit)
+        
+        self.input_template = FileSelector("Template Excel (Visual):")
 
-        # Origin Data
-        self.input_origin = self._create_file_selector("Planilha de Origem (Dados):", file_selection_layout)
-        # Template
-        self.input_template = self._create_file_selector("Template Excel (Visual):", file_selection_layout)
-
-        layout.addLayout(file_selection_layout)
+        layout.addWidget(self.input_origin)
+        layout.addWidget(self.input_template)
 
         # Mapping Table
-        layout.addWidget(QLabel("Mapeamento (Aba Origem -> Célula Destino):"))
-        self.mapping_table = QTableWidget(0, 2)
-        self.mapping_table.setHorizontalHeaderLabels(["Aba na Origem", "Célula no Template"])
-        self.mapping_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.mapping_table.setFixedHeight(120)
+        self.mapping_table = MappingTable()
         layout.addWidget(self.mapping_table)
         
-        # Mapping Controls
-        mapping_btns = QHBoxLayout()
-        btn_add = QPushButton("+ Adicionar")
-        btn_add.clicked.connect(self._add_mapping_row)
-        btn_remove = QPushButton("- Remover")
-        btn_remove.clicked.connect(self._remove_mapping_row)
-        mapping_btns.addWidget(btn_add)
-        mapping_btns.addWidget(btn_remove)
-        layout.addLayout(mapping_btns)
-
         # Config Buttons Area
         config_btns_layout = QHBoxLayout()
         
@@ -92,119 +81,51 @@ class ProcessingPanel(QFrame):
         self.btn_action.clicked.connect(self._handle_button_click)
         layout.addWidget(self.btn_action)
 
-    def _create_file_selector(self, label_text, parent_layout):
-        label = QLabel(label_text)
-        label.setObjectName("FieldLabel")
-        parent_layout.addWidget(label)
-
-        h_layout = QHBoxLayout()
-        line_edit = QLineEdit()
-        line_edit.setReadOnly(True)
-        btn_browse = QPushButton("Procurar")
-        btn_browse.setObjectName("BrowseButton")
-        btn_browse.setFixedWidth(80)
-        btn_browse.clicked.connect(lambda: self._browse_file(line_edit))
-
-        h_layout.addWidget(line_edit)
-        h_layout.addWidget(btn_browse)
-        parent_layout.addLayout(h_layout)
-        return line_edit
-
-    def _browse_file(self, line_edit):
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Selecionar Arquivo Excel", "", "Excel Files (*.xlsx *.xls)"
-        )
-        if file_path:
-            line_edit.setText(file_path)
-
-    def _add_mapping_row(self, aba="", celula=""):
-        row = self.mapping_table.rowCount()
-        self.mapping_table.insertRow(row)
-        self.mapping_table.setItem(row, 0, QTableWidgetItem(aba))
-        self.mapping_table.setItem(row, 1, QTableWidgetItem(celula))
-
-    def _remove_mapping_row(self):
-        row_count = self.mapping_table.rowCount()
-        if row_count > 0:
-            self.mapping_table.removeRow(row_count - 1)
-
     def _handle_save_config(self):
-        config_data = self._get_current_config_from_ui()
-        self.config_save_requested.emit(config_data)
+        self.config_save_requested.emit(self._get_current_config_from_ui())
 
     def _handle_export_config(self):
-        config_data = self._get_current_config_from_ui()
-        self.export_config_requested.emit(config_data)
+        self.export_config_requested.emit(self._get_current_config_from_ui())
 
     def _get_current_config_from_ui(self):
-        # Coleta mapeamento da tabela
-        mapeamento = {}
-        for row in range(self.mapping_table.rowCount()):
-            item_aba = self.mapping_table.item(row, 0)
-            item_celula = self.mapping_table.item(row, 1)
-            if item_aba and item_celula:
-                aba = item_aba.text().strip()
-                celula = item_celula.text().strip()
-                if aba and celula:
-                    mapeamento[aba] = celula
-
         return {
             "arquivos": {
                 "dados_origem": self.input_origin.text(),
                 "user_template": self.input_template.text()
             },
-            "mapeamento": mapeamento
+            "mapeamento": self.mapping_table.get_mapping()
         }
 
     def set_config_values(self, origin, template, mapeamento=None):
         self.input_origin.setText(origin)
         self.input_template.setText(template)
-        
-        if mapeamento:
-            self.mapping_table.setRowCount(0)
-            for aba, celula in mapeamento.items():
-                self._add_mapping_row(aba, celula)
+        self.mapping_table.set_mapping(mapeamento)
 
     def update_progress(self, value):
         self.progress_bar.setValue(value)
 
     def _handle_button_click(self):
-        """Decide qual sinal emitir baseado no estado atual"""
         if self._in_error_state:
             self.revalidate_requested.emit()
         else:
             self.start_requested.emit()
 
     def set_validation_state(self, sucesso: bool, mensagem: str = ""):
-        """Configura o botão e o log baseado no resultado da validação"""
-        if sucesso:
-            self._in_error_state = False
-            self.btn_action.setText("GERAR RELATÓRIO MENSAL")
-            self.btn_action.setEnabled(True)
-            self.progress_bar.setRange(0, 100)
-            self.progress_bar.setValue(0)
-        else:
-            self._in_error_state = True
-            self.btn_action.setText("REVALIDAR ARQUIVOS")
-            self.btn_action.setEnabled(True) # Habilita para permitir tentar novamente
-            self.progress_bar.setRange(0, 100)
-            self.progress_bar.setValue(0)
-        
+        self._in_error_state = not sucesso
+        self.btn_action.setText("GERAR RELATÓRIO MENSAL" if sucesso else "REVALIDAR ARQUIVOS")
+        self.btn_action.setEnabled(True)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
         if mensagem:
             self.log(mensagem)
 
     def set_busy(self, busy: bool, message: str = "Processando..."):
-        """Estado de carregamento (botão desabilitado, barra infinita)"""
         self.btn_action.setEnabled(not busy)
         if busy:
             self.btn_action.setText(message)
             self.progress_bar.setRange(0, 0)
-        else:
-            # Ao sair do busy, o estado deve ser definido por set_validation_state
-            pass
 
     def set_progress_success(self):
-        """Define progresso como 100% no sucesso"""
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(100)
         self.btn_action.setText("RELATÓRIO GERADO!")
