@@ -1,8 +1,12 @@
 import sys
 from PySide6.QtWidgets import QApplication
 from src.app.ui.windows.main_window import MainWindow
+from src.app.core.logger import setup_logger
 
 def main():
+    # Inicializa o logging globalmente
+    setup_logger()
+    
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
