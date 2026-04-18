@@ -1,4 +1,5 @@
 import os
+import re
 import pandas as pd
 import tomllib
 import time
@@ -12,6 +13,10 @@ class ValidationWorker(QObject):
     progress_log = Signal(str)
     validation_finished = Signal(bool, list)
     finished = Signal() # Sinal técnico para fechar a thread
+
+    def is_valid_excel_coordinate(self, coord):
+        """Valida se uma string é uma coordenada Excel válida (ex: A1, B10, Z100)"""
+        return bool(re.match(r'^[A-Z]{1,3}[1-9][0-9]*$', str(coord).upper()))
 
     @Slot()
     def run(self):
@@ -31,6 +36,13 @@ class ValidationWorker(QObject):
 
             with open("config.toml", "rb") as f:
                 config = tomllib.load(f)
+
+            # 1.5 Validar Coordenada da Data
+            cel_data = config['posicoes'].get('celula_data')
+            if not self.is_valid_excel_coordinate(cel_data):
+                err_msg = f"Célula da data '{cel_data}' é inválida."
+                erros.append(err_msg)
+                logger.warning(err_msg)
 
             # 2. Verificar Arquivo de Origem
             caminho_dados = config['arquivos'].get('dados_origem')
@@ -55,7 +67,13 @@ class ValidationWorker(QObject):
                         logger.info(msg)
                         self.progress_log.emit(msg)
 
-                        for nome_aba in config['mapeamento'].keys():
+                        for nome_aba, celula in config['mapeamento'].items():
+                            # Validar Coordenada de Destino
+                            if not self.is_valid_excel_coordinate(celula):
+                                err_msg = f"Célula de destino '{celula}' para aba '{nome_aba}' é inválida."
+                                erros.append(err_msg)
+                                logger.warning(err_msg)
+
                             if nome_aba not in abas_no_arquivo:
                                 err_msg = f"Aba '{nome_aba}' não encontrada."
                                 erros.append(err_msg)
