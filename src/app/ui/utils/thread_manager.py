@@ -1,10 +1,12 @@
 from PySide6.QtCore import QThread
+from src.app.core.logger import logger
 
 def run_worker_thread(worker, on_finished=None, on_error=None, on_log=None):
     """
     Abstração universal para execução de Workers em QThreads.
     Garante que os sinais sejam desconectados automaticamente ao terminar.
     """
+    logger.debug(f"Criando nova thread para o worker: {worker.__class__.__name__}")
     thread = QThread()
     worker.moveToThread(thread)
     
@@ -37,5 +39,6 @@ def run_worker_thread(worker, on_finished=None, on_error=None, on_log=None):
     thread.finished.connect(thread.deleteLater)
     thread.finished.connect(worker.deleteLater)
     
+    logger.info(f"Iniciando thread do worker {worker.__class__.__name__}")
     thread.start()
     return thread

@@ -1,4 +1,5 @@
 import tomllib
+from src.app.core.logger import logger
 
 class ConfigManager:
     """Gerencia a leitura do arquivo config.toml"""
@@ -7,6 +8,11 @@ class ConfigManager:
         self.config = {}
 
     def load_config(self):
-        with open(self.config_path, "rb") as f:
-            self.config = tomllib.load(f)
-        return self.config
+        try:
+            with open(self.config_path, "rb") as f:
+                self.config = tomllib.load(f)
+            logger.info(f"Configuração carregada com sucesso de: {self.config_path}")
+            return self.config
+        except Exception as e:
+            logger.error(f"Erro ao carregar configuração ({self.config_path}): {e}")
+            raise

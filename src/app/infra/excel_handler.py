@@ -4,6 +4,7 @@ from openpyxl import load_workbook
 import calendar
 from datetime import datetime
 from src.app.core.processor import TextProcessor
+from src.app.core.logger import logger
 
 class ExcelHandler:
     """Responsável por ler a origem e escrever no template Excel"""
@@ -21,16 +22,20 @@ class ExcelHandler:
         caminho_dados = self.config['arquivos']['dados_origem']
         caminho_template = self.config['arquivos']['template_ativo']
         
+        logger.info(f"Lendo dados de: {caminho_dados}")
         # Lê todas as abas de origem de uma vez para performance
         abas_origem = pd.read_excel(caminho_dados, sheet_name=None)
         
         # Carrega o template (preservando estilos e fórmulas)
         if not os.path.exists(caminho_template) or os.path.getsize(caminho_template) == 0:
+            logger.error(f"Arquivo de template inválido: {caminho_template}")
             raise FileNotFoundError(f"O arquivo de template está vazio ou não existe: {caminho_template}")
         
+        logger.info(f"Carregando template base: {caminho_template}")
         try:
             wb = load_workbook(caminho_template)
         except Exception as e:
+            logger.exception("Falha ao abrir template Excel com openpyxl")
             raise ValueError(f"O arquivo de template não é um Excel (.xlsx) válido: {str(e)}")
         
         ws_template = wb.active
@@ -39,6 +44,7 @@ class ExcelHandler:
         mes = self.config['projeto']['mes']
         _, ultimo_dia = calendar.monthrange(ano, mes)
 
+        logger.info(f"Iniciando loop diário para o mês {mes}/{ano} ({ultimo_dia} abas)")
         for dia in range(1, ultimo_dia + 1):
             data_atual = pd.Timestamp(year=ano, month=mes, day=dia)
             data_str = data_atual.strftime('%d-%m')
@@ -75,10 +81,18 @@ class ExcelHandler:
                         # Usa o processador core para formatar o resumo
                         resumo = TextProcessor.formatar_resumo(servicos)
                         nova_ws[celula_destino] = resumo
-
+        
         # Remove a aba original de exemplo e salva o arquivo final
         wb.remove(ws_template)
         nome_saida = f"Diario_Consolidado_{mes:02d}_{ano}.xlsx"
         caminho_saida = f"data/output/{nome_saida}"
-        wb.save(caminho_saida)
+        
+        logger.info(f"Tentando salvar arquivo consolidado em: {caminho_saida}")
+        try:
+            wb.save(caminho_saida)
+            logger.info("Relatório final gerado com sucesso.")
+        except Exception as e:
+            logger.exception(f"Erro ao salvar arquivo final: {e}")
+            raise
+            
         return caminho_saida

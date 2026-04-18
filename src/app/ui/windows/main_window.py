@@ -6,17 +6,18 @@ from src.app.ui.workers.validation_worker import ValidationWorker
 from src.app.ui.components.header import Header
 from src.app.ui.components.processing_panel import ProcessingPanel
 from src.app.ui.utils.thread_manager import run_worker_thread
+from src.app.core.logger import logger
 
 class MainWindow(QMainWindow):
     """
     Main Window Refatorada:
     - Uso de lista para manter threads vivas (evita Garbage Collection).
-    - Logs duplicados no terminal.
+    - Logs centralizados com logging.
     """
     
     def __init__(self):
         super().__init__()
-        print("[MAIN] Inicializando aplicação...")
+        logger.info("Inicializando aplicação...")
         
         self.setWindowTitle("Report Automator v1.0")
         self.setFixedSize(600, 560)
@@ -47,7 +48,7 @@ class MainWindow(QMainWindow):
         self.main_layout.addWidget(panel_container)
         
         self._setup_footer()
-        print("[MAIN] Interface pronta.")
+        logger.info("Interface pronta.")
         self.executar_validacao()
 
     def _load_styles(self):
@@ -55,7 +56,7 @@ class MainWindow(QMainWindow):
             with open("src/app/ui/styles/main.qss", "r") as f:
                 self.setStyleSheet(f.read())
         except Exception as e:
-            print(f"[ERROR] Falha ao carregar estilos: {e}")
+            logger.error(f"Falha ao carregar estilos: {e}")
 
     def _setup_footer(self):
         footer_container = QWidget()
@@ -71,7 +72,7 @@ class MainWindow(QMainWindow):
         if self._is_running:
             return
 
-        print("[VAL] Validando mapeamento...")
+        logger.info("Validando mapeamento...")
         self._is_running = True
         self.processing_panel.clear_log()
         self.processing_panel.set_busy(True, "Validando arquivos...")
@@ -80,7 +81,7 @@ class MainWindow(QMainWindow):
         worker.validation_finished.connect(self.processar_resultado_validacao)
         
         # Adicionamos a thread à lista para mantê-la viva
-        thread = run_worker_thread(worker, on_log=self._log_both)
+        thread = run_worker_thread(worker, on_log=self._update_ui_log)
         self._threads.append(thread)
         # Limpa a referência da lista quando a thread terminar
         thread.finished.connect(lambda t=thread: self._cleanup_thread(t))
@@ -89,10 +90,10 @@ class MainWindow(QMainWindow):
         """Remove a thread da lista de persistência após o término"""
         if thread in self._threads:
             self._threads.remove(thread)
-            print(f"[DEBUG] Thread encerrada e removida. Ativas: {len(self._threads)}")
+            logger.debug(f"Thread encerrada e removida. Ativas: {len(self._threads)}")
 
-    def _log_both(self, message):
-        print(f"[LOG] {message}")
+    def _update_ui_log(self, message):
+        """Apenas atualiza o painel visual, sem duplicar log no arquivo/console"""
         self.processing_panel.log(message)
 
     @Slot(bool, list)
@@ -103,27 +104,29 @@ class MainWindow(QMainWindow):
         else:
             self.processing_panel.set_validation_state(False)
             for erro in erros:
-                self._log_both(f"ERRO: {erro}")
+                logger.error(f"Erro de validação: {erro}")
+                self._update_ui_log(f"ERRO: {erro}")
             QMessageBox.critical(self, "Erro de Mapeamento", "Verifique os problemas listados.")
 
     def iniciar_processamento(self):
         if self._is_running:
             return
 
-        print("[PROC] Iniciando geração...")
+        logger.info("Iniciando geração de relatório...")
         self._is_running = True
         self.processing_panel.clear_log()
         self.processing_panel.set_busy(True, "Gerando relatório...")
-        
+
         worker = ProcessorWorker()
         thread = run_worker_thread(
             worker,
             on_finished=self.finalizar_sucesso,
             on_error=self.finalizar_erro,
-            on_log=self._log_both
+            on_log=self._update_ui_log
         )
         self._threads.append(thread)
         thread.finished.connect(lambda t=thread: self._cleanup_thread(t))
+
 
     @Slot(str)
     def finalizar_sucesso(self, arquivo):
