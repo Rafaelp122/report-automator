@@ -13,7 +13,7 @@ O grande diferencial deste projeto é sua arquitetura agnóstica: através de um
     *   Preservação de siglas técnicas em caixa alta (LED, PCD, BHLS).
     *   Padronização de preposições em caixa baixa.
 *   **Configuração via TOML:** Flexibilidade total sem necessidade de alterar o código-fonte.
-*   **Interface Gráfica (GUI):** Construída com CustomTkinter para uma experiência moderna no Windows.
+*   **Interface Gráfica (GUI):** Construída com PySide6 para uma experiência nativa e moderna.
 
 ## Arquitetura do Projeto
 

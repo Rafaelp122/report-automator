@@ -1,18 +1,16 @@
-from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QPushButton, QProgressBar, QFrame, QMessageBox
-)
-from PySide6.QtCore import Qt, QThread, Slot
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QMessageBox
+from PySide6.QtCore import Slot
 
 from src.app.ui.workers.processor_worker import ProcessorWorker
 from src.app.ui.components.header import Header
-from src.app.ui.components.log_view import LogView
+from src.app.ui.components.processing_panel import ProcessingPanel
+from src.app.ui.utils.thread_manager import run_worker_thread
 
 class MainWindow(QMainWindow):
     """
     Main Window Refatorada:
-    - Composição de Componentes (Header, LogView).
-    - Lógica de Layout mínima.
+    - Atua como hospedeira de componentes especializados.
+    - Delega burocracia de threads para o ThreadManager.
     """
     
     def __init__(self):
@@ -22,6 +20,9 @@ class MainWindow(QMainWindow):
         self.setFixedSize(600, 560)
         self._load_styles()
         
+        # Atributo para manter a thread viva (evitar Garbage Collection)
+        self._active_thread = None
+        
         # Central Widget & Layout
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -29,14 +30,22 @@ class MainWindow(QMainWindow):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
-        # UI Components
+        # 1. Header
         self.header = Header("Report Automator")
         self.main_layout.addWidget(self.header)
 
-        # Card Principal (Contêiner)
-        self._setup_main_card()
+        # 2. Painel de Processamento (Encapsulado)
+        self.processing_panel = ProcessingPanel()
+        self.processing_panel.start_requested.connect(self.iniciar_processamento)
         
-        # Footer
+        # Container para margens do painel
+        panel_container = QWidget()
+        panel_layout = QVBoxLayout(panel_container)
+        panel_layout.setContentsMargins(20, 20, 20, 20)
+        panel_layout.addWidget(self.processing_panel)
+        self.main_layout.addWidget(panel_container)
+        
+        # 3. Footer
         self._setup_footer()
 
     def _load_styles(self):
@@ -46,37 +55,6 @@ class MainWindow(QMainWindow):
                 self.setStyleSheet(f.read())
         except Exception as e:
             print(f"Erro ao carregar estilos: {e}")
-
-    def _setup_main_card(self):
-        # Card Container (Margens externas)
-        card_container = QWidget()
-        card_layout_outer = QVBoxLayout(card_container)
-        card_layout_outer.setContentsMargins(20, 20, 20, 20)
-
-        # O Card Branco em si
-        self.card_frame = QFrame()
-        self.card_frame.setObjectName("MainCard")
-        card_layout_inner = QVBoxLayout(self.card_frame)
-        card_layout_inner.setContentsMargins(25, 20, 25, 25)
-        card_layout_inner.setSpacing(10)
-
-        # --- Componentes Internos do Card ---
-        self.log_console = LogView(initial_text="Sistema pronto para operação.")
-        card_layout_inner.addWidget(self.log_console)
-
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        card_layout_inner.addWidget(self.progress_bar)
-
-        self.btn_action = QPushButton("GERAR RELATÓRIO MENSAL")
-        self.btn_action.setObjectName("ActionButton")
-        self.btn_action.setCursor(Qt.PointingHandCursor)
-        self.btn_action.clicked.connect(self.iniciar_processamento)
-        card_layout_inner.addWidget(self.btn_action)
-
-        card_layout_outer.addWidget(self.card_frame)
-        self.main_layout.addWidget(card_container)
 
     def _setup_footer(self):
         footer_container = QWidget()
@@ -91,39 +69,27 @@ class MainWindow(QMainWindow):
         self.main_layout.addWidget(footer_container)
 
     def iniciar_processamento(self):
-        """Setup do Worker e Thread"""
-        self.btn_action.setEnabled(False)
-        self.progress_bar.setRange(0, 0) # Indeterminate
+        """Delega o processamento pesado ao ThreadManager"""
+        self.processing_panel.set_busy(True)
         
-        self.thread = QThread()
-        self.worker = ProcessorWorker()
-        self.worker.moveToThread(self.thread)
+        # Instancia o Worker (Burocracia zero na MainWindow)
+        worker = ProcessorWorker()
         
-        # Conexão de Sinais via Componente LogView
-        self.thread.started.connect(self.worker.run)
-        self.worker.progress_log.connect(self.log_console.log)
-        self.worker.finished.connect(self.finalizar_sucesso)
-        self.worker.error.connect(self.finalizar_erro)
-        
-        # Cleanup
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.error.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.worker.error.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        
-        self.thread.start()
+        # Executa via Gerenciador de Threads
+        self._active_thread = run_worker_thread(
+            worker,
+            on_finished=self.finalizar_sucesso,
+            on_error=self.finalizar_erro,
+            on_log=self.processing_panel.log
+        )
 
     @Slot(str)
     def finalizar_sucesso(self, arquivo):
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(100)
-        self.btn_action.setEnabled(True)
+        self.processing_panel.set_busy(False)
+        self.processing_panel.set_progress_success()
         QMessageBox.information(self, "Sucesso", f"Relatório gerado com sucesso!\n{arquivo}")
 
     @Slot(str)
     def finalizar_erro(self, msg):
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        self.btn_action.setEnabled(True)
+        self.processing_panel.set_busy(False)
         QMessageBox.critical(self, "Erro", f"Falha no processamento:\n{msg}")
