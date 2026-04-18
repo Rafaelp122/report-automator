@@ -34,6 +34,8 @@ O projeto segue uma estrutura de **Arquitetura em Camadas (Layered Architecture)
 | Openpyxl | Manipulação de templates e preservação de estilos Excel |
 | PySide6 | Interface gráfica nativa e moderna |
 | TOML | Gerenciamento de configurações e mapeamento |
+| Pytest | Framework de testes unitários e de integração |
+| Coverage | Análise de cobertura de código e garantia de qualidade |
 
 ## Observabilidade e Logging
 
@@ -52,8 +54,25 @@ Caso ocorra algum erro inesperado, verifique o arquivo `logs/app.log` para um di
 
 1.  **Prepare o ambiente:** Mantenha o executável, o arquivo `config.toml` e seu `template.xlsx` na mesma pasta.
 2.  **Configure o TOML:** Abra o arquivo de configuração e defina quais colunas da sua medição devem ser enviadas para quais células do diário.
-3.  **Execute o App:** Abra o `GeradorDiario.exe`, selecione o mês/ano e clique em **Gerar**.
+3.  **Execute o App:** Abra o `ReportAutomator.exe`, selecione o mês/ano e clique em **Gerar**.
 4.  **Resultado:** Um novo arquivo consolidado será gerado com uma aba para cada dia do mês perfeitamente preenchida.
+
+## Desenvolvimento e Testes
+
+O projeto utiliza `pytest` para testes automatizados e `pytest-cov` para análise de cobertura.
+
+### Executar Testes
+Para rodar todos os testes unitários e de integração:
+```bash
+uv run pytest
+```
+
+### Cobertura de Código
+A configuração de cobertura ignora arquivos de log e inicialização, focando na lógica de negócio e infraestrutura:
+```bash
+# O relatório de cobertura é exibido automaticamente ao final dos testes
+uv run pytest --cov=src --cov-report=term-missing
+```
 
 ## Licença e Isenção de Responsabilidade
 
