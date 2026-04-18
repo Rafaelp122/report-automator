@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from openpyxl import load_workbook
 import calendar
@@ -24,7 +25,14 @@ class ExcelHandler:
         abas_origem = pd.read_excel(caminho_dados, sheet_name=None)
         
         # Carrega o template (preservando estilos e fórmulas)
-        wb = load_workbook(caminho_template)
+        if not os.path.exists(caminho_template) or os.path.getsize(caminho_template) == 0:
+            raise FileNotFoundError(f"O arquivo de template está vazio ou não existe: {caminho_template}")
+        
+        try:
+            wb = load_workbook(caminho_template)
+        except Exception as e:
+            raise ValueError(f"O arquivo de template não é um Excel (.xlsx) válido: {str(e)}")
+        
         ws_template = wb.active
         
         ano = self.config['projeto']['ano']
