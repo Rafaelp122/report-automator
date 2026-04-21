@@ -59,9 +59,11 @@ Ao clicar em **[GERAR DIÁRIO DE OBRA]**, o `ProcessorWorker` assume o controle 
     *   **Tempo Decorrido**: Calculado como `(Data Atual - Data Início) + 1`.
 3.  **Extração de Colunas**:
     *   Filtra o DataFrame para o dia e aba correspondente.
+    *   Percorre a lista de colunas em `[extração].colunas`.
     *   Remove nulos e duplicatas.
     *   Aplica o `TextProcessor` (Title Case e Siglas).
-4.  **Escrita Consolidada**: Injeta o texto final (ex: *"Bairro: Centro | Serviço: Poda"*) na célula de destino.
+    *   Monta a string final baseada no template `[extração].formato_final` usando substituição dinâmicas das chaves `{}`.
+4.  **Escrita Consolidada**: Injeta o texto formatado na célula de destino.
 5.  **Progresso**: Envia sinais para atualizar a barra de progresso da UI.
 
 ---
@@ -82,6 +84,11 @@ Ao clicar em **[GERAR DIÁRIO DE OBRA]**, o `ProcessorWorker` assume o controle 
 [contrato]
 data_inicio = "2026-01-01"
 prazo_dias = 365
+
+[extração]
+colunas = ["Descrição do serviço", "Bairro", "Equipe"]
+# O usuário usa chaves {} para dizer onde os dados entram
+formato_final = "Serviços: {Descrição do serviço}. Local: {Bairro}. Equipe responsável: {Equipe}."
 
 [posicoes]
 celula_data_inicio = "R8"

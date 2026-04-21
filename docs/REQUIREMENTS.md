@@ -15,7 +15,7 @@
 
     RF05 - Mapeamento Dinâmico de Categorias (Abas): A interface deve permitir adicionar ou remover dinamicamente quantas abas de origem forem necessárias, mapeando cada uma para uma célula de destino.
 
-    RF06 - Extração Genérica de Colunas: O usuário deve definir uma lista de colunas para extração (ex: Bairro, Serviço, Equipe). O sistema deve buscar essas colunas em todas as abas mapeadas.
+    RF06 - Extração e Formatação Dinâmica: O usuário deve definir uma lista de colunas para extração e um template de texto (ex: "Serviço: {servico} em {bairro}"). O sistema deve realizar a substituição dinâmica dos valores para cada aba mapeada.
 
     RF07 - Processamento de Metadados de Contrato: O sistema deve calcular automaticamente o cronograma com base na Data Inicial e no Prazo (Dias), gerando a Data Final e o Tempo Decorrido.
 
