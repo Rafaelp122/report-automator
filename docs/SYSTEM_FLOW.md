@@ -57,12 +57,12 @@ Ao clicar em **[GERAR DIÁRIO DE OBRA]**, o `ProcessorWorker` assume o controle 
     *   **Dados Fixos**: Escreve Data de Início, Data Final e Prazo nas células mapeadas.
     *   **Dados Dinâmicos**: Escreve a Data Atual da aba.
     *   **Tempo Decorrido**: Calculado como `(Data Atual - Data Início) + 1`.
-3.  **Extração de Colunas**:
-    *   Filtra o DataFrame para o dia e aba correspondente.
-    *   Percorre a lista de colunas em `[extração].colunas`.
-    *   Remove nulos e duplicatas.
-    *   Aplica o `TextProcessor` (Title Case e Siglas).
-    *   Monta a string final baseada no template `[extração].formato_final` usando substituição dinâmicas das chaves `{}`.
+    *   **Extração de Colunas**: Para cada aba mapeada (Manual, Mecânica, etc.):
+        *   O sistema filtra o DataFrame para o dia e aba correspondente.
+        *   Gera listas de valores únicos para cada coluna em `[extração].colunas`.
+        *   Aplica o `TextProcessor` para formatar siglas e capitalização.
+        *   **Inteligência Gramatical**: O sistema analisa o `formato_final` e aplica as regras de plural/singular (ex: `{s}`, `{nos}`) baseando-se na contagem de itens de cada lista.
+        *   Monta a frase final consolidando as listas com os conectores `separador_lista` (", ") e `conector_final` (" e ").
 4.  **Escrita Consolidada**: Injeta o texto formatado na célula de destino.
 5.  **Progresso**: Envia sinais para atualizar a barra de progresso da UI.
 
