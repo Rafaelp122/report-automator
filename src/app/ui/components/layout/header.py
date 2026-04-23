@@ -1,10 +1,10 @@
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel
 
 class Header(QFrame):
-    def __init__(self, title="Report Automator", parent=None):
+    def __init__(self, title="RDO Automator", parent=None):
         super().__init__(parent)
         self.setObjectName("Header")
-        self.setFixedHeight(70)
+        self.setMinimumHeight(60)
         
         layout = QHBoxLayout(self)
         layout.setContentsMargins(30, 0, 30, 0)

@@ -105,3 +105,30 @@ QGroupBox#BorderlessGroup {
 #ActionButton:disabled {
     background-color: #A5AEC0;
 }
+
+/* --- Chips --- */
+QWidget#Chip {
+    background-color: #3F51B5;
+    color: white;
+    border-radius: 12px;
+}
+
+QWidget#Chip QLabel { 
+    color: white; 
+    background: transparent; 
+    padding: 2px 4px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+QWidget#Chip QPushButton { 
+    color: white; 
+    background: transparent; 
+    border: none; 
+    font-weight: bold; 
+    padding: 0px 4px;
+}
+
+QWidget#Chip QPushButton:hover { 
+    color: #FFCDD2; 
+}

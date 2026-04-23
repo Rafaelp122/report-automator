@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel
+from PySide6.QtCore import Qt
 
 class Footer(QWidget):
     """
@@ -11,11 +12,10 @@ class Footer(QWidget):
 
     def _setup_ui(self, version, license_info):
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 5, 10, 5)
+        layout.setContentsMargins(0, 5, 0, 5)
         
         self.label = QLabel(f"{version} | {license_info}")
         self.label.setObjectName("FooterLabel")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        layout.addStretch()
         layout.addWidget(self.label)
-        layout.addStretch()

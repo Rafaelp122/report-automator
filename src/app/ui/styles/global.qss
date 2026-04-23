@@ -64,13 +64,13 @@ QSpinBox::up-button, QSpinBox::down-button, QDateEdit::drop-down {
 }
 
 QSpinBox::up-arrow {
-    image: url(src/app/ui/assets/up_arrow.svg);
+    image: url({{ASSETS_DIR}}/up_arrow.svg);
     width: 10px;
     height: 10px;
 }
 
 QSpinBox::down-arrow, QDateEdit::down-arrow {
-    image: url(src/app/ui/assets/down_arrow.svg);
+    image: url({{ASSETS_DIR}}/down_arrow.svg);
     width: 10px;
     height: 10px;
 }
@@ -124,12 +124,53 @@ QProgressBar::chunk {
 
 QScrollBar:vertical {
     background: #E2E8F0;
+    width: 14px;
+    margin: 14px 0 14px 0;
+    border-radius: 7px;
 }
 
 QScrollBar::handle:vertical {
     background: #3F51B5;
+    min-height: 20px;
+    border-radius: 7px;
 }
 
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+QScrollBar::add-line:vertical {
     background: none;
+    height: 14px;
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::sub-line:vertical {
+    background: none;
+    height: 14px;
+    subcontrol-position: top;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::up-arrow:vertical {
+    image: url({{ASSETS_DIR}}/up_arrow.svg);
+    width: 8px;
+    height: 8px;
+}
+
+QScrollBar::down-arrow:vertical {
+    image: url({{ASSETS_DIR}}/down_arrow.svg);
+    width: 8px;
+    height: 8px;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+/* --- Error States --- */
+*[error="true"] {
+    border: 1px solid #D32F2F !important;
+    background-color: #FFEBEE !important;
+}
+
+*[error="true"]:hover {
+    border: 1px solid #B71C1C !important;
 }
