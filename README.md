@@ -1,4 +1,4 @@
-# Report Automator: Excel Template Engine
+# RDO Automator: Excel Template Engine
 
 Este projeto é uma ferramenta de automação ETL (Extract, Transform, Load) desenvolvida para otimizar a geração de Diários de Obra. Ele extrai dados brutos de planilhas de medição, processa os textos utilizando lógica de capitalização inteligente e consolida as informações em abas diárias dentro de um template Excel pré-formatado.
 

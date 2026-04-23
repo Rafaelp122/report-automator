@@ -1,4 +1,4 @@
-# 🗺️ Esquema de Configuração: config.toml (v2.0)
+# 🗺️ Esquema de Configuração: config.toml (v1.0)
 
 Este documento define a estrutura, os tipos de dados e a inteligência por trás do arquivo `config.toml`.
 

@@ -1,4 +1,4 @@
-# 🎨 Especificação de UI/UX: Report Automator v2.0 (Tela Única)
+# 🎨 Especificação de UI/UX: RDO Automator v1.0 (Tela Única)
 
 Esta versão consolida todas as funcionalidades em um Dashboard de Fluxo Contínuo, focado em eficiência e visibilidade total dos parâmetros.
 
@@ -19,7 +19,7 @@ Esta versão consolida todas as funcionalidades em um Dashboard de Fluxo Contín
 O layout é organizado em um fluxo vertical de cartões, permitindo que o usuário visualize toda a configuração de uma vez.
 
 ### 🔝 Cabeçalho (Header Fixo)
-- Esquerda: Logotipo (Planilha + Engrenagem) + Título "Report Automator v2.0".
+- Esquerda: Logotipo (Planilha + Engrenagem) + Título "RDO Automator v1.0".
 - Direita: Botões rápidos `[📥 Importar TOML]` e `[📤 Exportar TOML]`.
 
 ### 📜 Área Central (Scrollable)

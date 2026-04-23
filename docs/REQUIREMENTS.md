@@ -1,4 +1,4 @@
-# 📋 Levantamento de Requisitos: Report Automator v2.0
+# 📋 Levantamento de Requisitos: RDO Automator v1.0
 
 ## 1. Requisitos Funcionais (RF)
 

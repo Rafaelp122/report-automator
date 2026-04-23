@@ -1,4 +1,4 @@
-# 🏗️ Fluxo do Sistema: Report Automator v2.0
+# 🏗️ Fluxo do Sistema: RDO Automator v1.0
 
 Este documento detalha o ciclo de vida da aplicação, desde a inicialização até a entrega do relatório final, incluindo as novas lógicas de metadados e validação.
 
