@@ -1,38 +1,41 @@
-import os
-from src.app.infra.excel_handler import ExcelHandler
+from pathlib import Path
 from src.app.core.logger import logger
+from src.app.core.report_builder import ReportBuilder
+from src.app.core.config_models import ReportConfig
+from src.app.core.constants import OUTPUT_DIR, DEFAULT_TEMPLATE_PATH
 
 class ReportService:
     """
     Serviço de Domínio para orquestrar a geração de relatórios.
-    Lida com a lógica de decisão (templates, caminhos) antes de delegar para infra.
+    Faz a ponte entre a configuração validada e o ReportBuilder.
     """
 
-    def generate_report(self, config, progress_callback=None):
-        """
-        Orquestra o fluxo completo de geração do relatório.
-        """
-        # 1. Validar existência do arquivo de origem
-        dados_origem = config.get('arquivos', {}).get('dados_origem')
-        if not dados_origem or not os.path.exists(dados_origem):
-            raise FileNotFoundError(f"Arquivo de dados não encontrado: {dados_origem}")
+    def generate_report(self, config: ReportConfig, progress_callback=None) -> str:
+        """Orquestra o fluxo completo de geração do relatório"""
+        
+        # 1. Validar e definir caminhos (Usando Pathlib)
+        origem = Path(config.arquivos.dados_origem)
+        if not origem.exists():
+            raise FileNotFoundError(f"Arquivo de origem não encontrado: {origem}")
         
         # 2. Lógica de Prioridade de Template
-        user_tmpl = config.get('arquivos', {}).get('user_template')
-        default_tmpl = config.get('arquivos', {}).get('default_template')
+        user_tmpl = Path(config.arquivos.user_template) if config.arquivos.user_template else None
         
-        if user_tmpl and os.path.exists(user_tmpl):
+        if user_tmpl and user_tmpl.exists():
             logger.info(f"Usando template customizado: {user_tmpl}")
-            config['arquivos']['template_ativo'] = user_tmpl
+            config.arquivos.template_ativo = str(user_tmpl)
         else:
-            if not default_tmpl or not os.path.exists(default_tmpl):
-                raise FileNotFoundError(f"Template padrão não encontrado em: {default_tmpl}")
+            if not DEFAULT_TEMPLATE_PATH.exists():
+                raise FileNotFoundError(f"Template padrão não encontrado: {DEFAULT_TEMPLATE_PATH}")
             logger.info("Usando template padrão do sistema.")
-            config['arquivos']['template_ativo'] = default_tmpl
+            config.arquivos.template_ativo = str(DEFAULT_TEMPLATE_PATH)
 
-        # 3. Delegar para o ExcelHandler (Infra)
-        logger.info("Iniciando processamento Excel via ExcelHandler...")
-        handler = ExcelHandler(config)
-        arquivo_final = handler.gerar_diario_completo(progress_callback=progress_callback)
+        # 3. Definir nome do arquivo de saída
+        nome_saida = f"Diario_Consolidado_{config.projeto.mes:02d}_{config.projeto.ano}.xlsx"
+        caminho_saida = OUTPUT_DIR / nome_saida
+
+        # 4. Delegar para o ReportBuilder
+        builder = ReportBuilder(config)
+        arquivo_final = builder.build(caminho_saida, progress_callback=progress_callback)
         
-        return arquivo_final
+        return str(arquivo_final)
