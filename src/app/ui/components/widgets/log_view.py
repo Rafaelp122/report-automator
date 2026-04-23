@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTextEdit
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPlainTextEdit
 
 class LogView(QWidget):
     def __init__(self, title="LOG DE PROCESSAMENTO", initial_text="Pronto.", parent=None):
@@ -11,7 +11,7 @@ class LogView(QWidget):
         self.label.setObjectName("SectionLabel")
         layout.addWidget(self.label)
 
-        self.text_area = QTextEdit()
+        self.text_area = QPlainTextEdit()
         self.text_area.setObjectName("LogArea")
         self.text_area.setReadOnly(True)
         self.text_area.setPlainText(f"{initial_text}\n")
@@ -19,7 +19,7 @@ class LogView(QWidget):
 
     def log(self, message):
         """Adiciona uma mensagem ao console de log"""
-        self.text_area.append(f"> {message}")
+        self.text_area.appendPlainText(f"> {message}")
         self.text_area.ensureCursorVisible()
 
     def clear(self):

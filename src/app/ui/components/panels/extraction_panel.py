@@ -24,12 +24,11 @@ class ExtractionPanel(QGroupBox):
         layout.addWidget(self.input_chip)
         
         self.chips_layout = QHBoxLayout()
-        self.chips_layout.setAlignment(Qt.AlignLeft)
+        self.chips_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         layout.addLayout(self.chips_layout)
         
         # Load existing chips
-        extracao = self.config.get('extração', {})
-        for col in extracao.get('colunas', []):
+        for col in self.config.extracao.colunas:
             self._create_chip_widget(col)
         
         # Formato Final
@@ -37,7 +36,7 @@ class ExtractionPanel(QGroupBox):
         self.text_formato = QPlainTextEdit()
         self.text_formato.setObjectName("TemplateEditor")
         self.text_formato.setPlaceholderText("Ex: {Serviço:nos} serviço{Serviço:s} realizado{Serviço:s}: {Serviço}.")
-        self.text_formato.setPlainText(extracao.get('formato_final', ''))
+        self.text_formato.setPlainText(self.config.extracao.formato_final)
         self.text_formato.textChanged.connect(self._save_config)
         self.text_formato.setMaximumHeight(80)
         layout.addWidget(self.text_formato)
@@ -45,12 +44,12 @@ class ExtractionPanel(QGroupBox):
         # Separadores
         sep_layout = QHBoxLayout()
         sep_layout.addWidget(QLabel("Separador de lista:"))
-        self.input_sep = QLineEdit(extracao.get('separador_lista', ', '))
+        self.input_sep = QLineEdit(self.config.extracao.separador_lista)
         self.input_sep.editingFinished.connect(self._save_config)
         sep_layout.addWidget(self.input_sep)
         
         sep_layout.addWidget(QLabel("Conector final:"))
-        self.input_con = QLineEdit(extracao.get('conector_final', ' e '))
+        self.input_con = QLineEdit(self.config.extracao.conector_final)
         self.input_con.editingFinished.connect(self._save_config)
         sep_layout.addWidget(self.input_con)
         
@@ -73,32 +72,22 @@ class ExtractionPanel(QGroupBox):
             
         chip_widget = QWidget()
         chip_widget.setObjectName("Chip")
-        chip_widget.setStyleSheet("""
-            QWidget#Chip {
-                background-color: #3F51B5;
-                color: white;
-                border-radius: 12px;
-            }
-            QLabel { color: white; background: transparent; padding: 4px; }
-            QPushButton { 
-                color: white; background: transparent; 
-                border: none; font-weight: bold; padding: 4px;
-            }
-            QPushButton:hover { color: #FFCDD2; }
-        """)
         
         clayout = QHBoxLayout(chip_widget)
-        clayout.setContentsMargins(4, 0, 4, 0)
+        clayout.setContentsMargins(8, 0, 4, 0)
+        clayout.setSpacing(2)
         
         lbl = QLabel(text)
         btn = QPushButton("x")
-        btn.setFixedSize(20, 20)
+        btn.setFixedSize(18, 18)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
         
         clayout.addWidget(lbl)
         clayout.addWidget(btn)
         
         def remove_chip():
-            self.chips.remove(text)
+            if text in self.chips:
+                self.chips.remove(text)
             chip_widget.deleteLater()
             self._save_config()
             
@@ -106,9 +95,32 @@ class ExtractionPanel(QGroupBox):
         self.chips_layout.addWidget(chip_widget)
 
     def _save_config(self):
-        extracao = self.config.setdefault('extração', {})
-        extracao['colunas'] = self.chips
-        extracao['formato_final'] = self.text_formato.toPlainText()
-        extracao['separador_lista'] = self.input_sep.text()
-        extracao['conector_final'] = self.input_con.text()
+        extracao = self.config.extracao
+        extracao.colunas = self.chips
+        extracao.formato_final = self.text_formato.toPlainText()
+        extracao.separador_lista = self.input_sep.text()
+        extracao.conector_final = self.input_con.text()
         self.config_changed.emit()
+
+    def set_field_errors(self, field_errors: dict):
+        """Aplica estilo de erro aos campos deste painel"""
+        if "formato_final" in field_errors:
+            self._apply_error_style(self.text_formato, field_errors["formato_final"])
+        
+        if "colunas" in field_errors:
+            # Destaca a área de input de colunas
+            self._apply_error_style(self.input_chip, field_errors["colunas"])
+
+    def clear_errors(self):
+        """Remove estilos de erro de todos os campos do painel"""
+        for widget in [self.text_formato, self.input_chip, self.input_sep, self.input_con]:
+            widget.setProperty("error", False)
+            widget.setToolTip("")
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+
+    def _apply_error_style(self, widget, message):
+        widget.setProperty("error", True)
+        widget.setToolTip(message)
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)

@@ -5,7 +5,7 @@ class ContractPeriodGroup(QGroupBox):
     changed = Signal()
     def __init__(self, config):
         super().__init__("📋 Dados do Contrato e Período")
-        self.setAlignment(Qt.AlignCenter)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.config = config
         self._init_ui()
         
@@ -15,7 +15,7 @@ class ContractPeriodGroup(QGroupBox):
         # Data Inicial
         self.date_inicio = QDateEdit()
         self.date_inicio.setCalendarPopup(True)
-        iso_data = self.config.get('contrato', {}).get('data_inicio')
+        iso_data = self.config.contrato.data_inicio
         if iso_data:
             self.date_inicio.setDate(QDate.fromString(iso_data, "yyyy-MM-dd"))
         else:
@@ -26,28 +26,50 @@ class ContractPeriodGroup(QGroupBox):
         # Prazo (Dias)
         self.spin_prazo = QSpinBox()
         self.spin_prazo.setMaximum(9999)
-        self.spin_prazo.setValue(self.config.get('contrato', {}).get('prazo_dias', 365))
+        self.spin_prazo.setValue(self.config.contrato.prazo_dias)
         self.spin_prazo.valueChanged.connect(lambda *a: self.changed.emit())
         layout.addRow("Prazo (Dias):", self.spin_prazo)
         
         # Mês Atual
         self.spin_mes = QSpinBox()
         self.spin_mes.setRange(1, 12)
-        self.spin_mes.setValue(self.config.get('projeto', {}).get('mes', QDate.currentDate().month()))
+        self.spin_mes.setValue(self.config.projeto.mes)
         self.spin_mes.valueChanged.connect(lambda *a: self.changed.emit())
         layout.addRow("Mês Atual:", self.spin_mes)
         
         # Ano Atual
         self.spin_ano = QSpinBox()
         self.spin_ano.setRange(2000, 2100)
-        self.spin_ano.setValue(self.config.get('projeto', {}).get('ano', QDate.currentDate().year()))
+        self.spin_ano.setValue(self.config.projeto.ano)
         self.spin_ano.valueChanged.connect(lambda *a: self.changed.emit())
         layout.addRow("Ano Atual:", self.spin_ano)
         
         self.setLayout(layout)
         
     def update_config(self, config):
-        config.setdefault('contrato', {})['data_inicio'] = self.date_inicio.date().toString("yyyy-MM-dd")
-        config['contrato']['prazo_dias'] = self.spin_prazo.value()
-        config.setdefault('projeto', {})['mes'] = self.spin_mes.value()
-        config['projeto']['ano'] = self.spin_ano.value()
+        config.contrato.data_inicio = self.date_inicio.date().toString("yyyy-MM-dd")
+        config.contrato.prazo_dias = self.spin_prazo.value()
+        config.projeto.mes = self.spin_mes.value()
+        config.projeto.ano = self.spin_ano.value()
+
+    def set_field_errors(self, field_errors: dict):
+        """Aplica estilo de erro aos campos de contrato (se houver)"""
+        # Exemplo: se houver erro na data ou prazo
+        if "data_inicio" in field_errors:
+            self._apply_error_style(self.date_inicio, field_errors["data_inicio"])
+        if "prazo_dias" in field_errors:
+            self._apply_error_style(self.spin_prazo, field_errors["prazo_dias"])
+
+    def clear_errors(self):
+        """Limpa erros dos campos"""
+        for w in [self.date_inicio, self.spin_prazo, self.spin_mes, self.spin_ano]:
+            w.setProperty("error", False)
+            w.setToolTip("")
+            w.style().unpolish(w)
+            w.style().polish(w)
+
+    def _apply_error_style(self, widget, message):
+        widget.setProperty("error", True)
+        widget.setToolTip(message)
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)

@@ -1,11 +1,13 @@
 import os
 import shutil
+from pathlib import Path
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
     QFileDialog, QSpinBox, QGroupBox
 )
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 from src.app.core.logger import logger
+from src.app.core.constants import INPUT_DIR
 
 class IngestionPanel(QGroupBox):
     config_changed = Signal()
@@ -22,6 +24,7 @@ class IngestionPanel(QGroupBox):
         src_layout = QHBoxLayout()
         self.lbl_src = QLabel("Planilha de Origem: Não selecionada")
         btn_src = QPushButton("Procurar")
+        btn_src.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_src.clicked.connect(self._select_source)
         src_layout.addWidget(self.lbl_src)
         src_layout.addWidget(btn_src)
@@ -30,6 +33,7 @@ class IngestionPanel(QGroupBox):
         tmpl_layout = QHBoxLayout()
         self.lbl_tmpl = QLabel("Template Base: Padrão do Sistema")
         btn_tmpl = QPushButton("Procurar")
+        btn_tmpl.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_tmpl.clicked.connect(self._select_template)
         tmpl_layout.addWidget(self.lbl_tmpl)
         tmpl_layout.addWidget(btn_tmpl)
@@ -40,7 +44,7 @@ class IngestionPanel(QGroupBox):
         self.spin_header = QSpinBox()
         self.spin_header.setMinimum(0)
         self.spin_header.setMaximum(100)
-        self.spin_header.setValue(self.config.get('arquivos', {}).get('linha_cabecalho', 0))
+        self.spin_header.setValue(self.config.arquivos.linha_cabecalho)
         self.spin_header.valueChanged.connect(self._update_header)
         hdr_layout.addWidget(self.spin_header)
         hdr_layout.addStretch()
@@ -55,27 +59,26 @@ class IngestionPanel(QGroupBox):
         return (text[:length] + '...') if len(text) > length else text
 
     def _update_labels(self):
-        src = self.config.get('arquivos', {}).get('dados_origem')
+        src = self.config.arquivos.dados_origem
         if src:
-            name = self._truncate(os.path.basename(src))
+            name = self._truncate(Path(src).name)
             self.lbl_src.setText(f"Planilha de Origem: 🟢 {name}")
             self.lbl_src.setToolTip(src)
             
-        tmpl = self.config.get('arquivos', {}).get('user_template')
+        tmpl = self.config.arquivos.user_template
         if tmpl:
-            name = self._truncate(os.path.basename(tmpl))
+            name = self._truncate(Path(tmpl).name)
             self.lbl_tmpl.setText(f"Template Base: 🟢 {name}")
             self.lbl_tmpl.setToolTip(tmpl)
 
     def _select_source(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Selecionar Planilha", "", "Excel (*.xlsx *.xls)")
         if file_path:
-            dest = os.path.join("data", "input", os.path.basename(file_path))
-            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            dest = INPUT_DIR / Path(file_path).name
             try:
                 shutil.copy2(file_path, dest)
                 logger.info(f"Arquivo importado: {dest}")
-                self.config.setdefault('arquivos', {})['dados_origem'] = dest
+                self.config.arquivos.dados_origem = str(dest)
                 self._update_labels()
                 self.config_changed.emit()
             except Exception as e:
@@ -84,17 +87,38 @@ class IngestionPanel(QGroupBox):
     def _select_template(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Selecionar Template", "", "Excel (*.xlsx *.xls)")
         if file_path:
-            dest = os.path.join("data", "input", os.path.basename(file_path))
-            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            dest = INPUT_DIR / Path(file_path).name
             try:
                 shutil.copy2(file_path, dest)
                 logger.info(f"Template importado: {dest}")
-                self.config.setdefault('arquivos', {})['user_template'] = dest
+                self.config.arquivos.user_template = str(dest)
                 self._update_labels()
                 self.config_changed.emit()
             except Exception as e:
                 logger.error(f"Erro ao copiar template: {e}")
 
     def _update_header(self, value):
-        self.config.setdefault('arquivos', {})['linha_cabecalho'] = value
+        self.config.arquivos.linha_cabecalho = value
         self.config_changed.emit()
+
+    def set_field_errors(self, field_errors: dict):
+        """Aplica estilo de erro aos campos deste painel"""
+        if "dados_origem" in field_errors:
+            self._apply_error_style(self.lbl_src, field_errors["dados_origem"])
+        
+        if "template_ativo" in field_errors or "user_template" in field_errors:
+            self._apply_error_style(self.lbl_tmpl, field_errors.get("template_ativo") or field_errors.get("user_template"))
+
+    def clear_errors(self):
+        """Remove estilos de erro de todos os campos do painel"""
+        for widget in [self.lbl_src, self.lbl_tmpl, self.spin_header]:
+            widget.setProperty("error", False)
+            widget.setToolTip("")
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+
+    def _apply_error_style(self, widget, message):
+        widget.setProperty("error", True)
+        widget.setToolTip(message)
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)

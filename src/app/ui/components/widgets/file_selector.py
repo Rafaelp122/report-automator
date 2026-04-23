@@ -27,7 +27,7 @@ class FileSelector(QWidget):
         self.btn_browse = QPushButton("Procurar")
         self.btn_browse.setObjectName("BrowseButton")
         self.btn_browse.setFixedWidth(80)
-        self.btn_browse.setCursor(Qt.PointingHandCursor)
+        self.btn_browse.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_browse.clicked.connect(self._browse_file)
 
         h_layout.addWidget(self.line_edit)

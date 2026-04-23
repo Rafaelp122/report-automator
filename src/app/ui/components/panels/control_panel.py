@@ -101,9 +101,9 @@ class ControlPanel(QGroupBox):
             self.log_view.clear()
 
     def _open_output_folder(self):
-        output_dir = os.path.join(os.getcwd(), "data", "output")
-        if os.path.exists(output_dir):
+        from src.app.core.constants import OUTPUT_DIR
+        if OUTPUT_DIR.exists():
             if os.name == 'nt':
-                os.startfile(output_dir)
+                os.startfile(str(OUTPUT_DIR))
             elif os.name == 'posix':
-                subprocess.Popen(['xdg-open', output_dir])
+                subprocess.Popen(['xdg-open', str(OUTPUT_DIR)])

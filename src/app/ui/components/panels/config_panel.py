@@ -32,7 +32,7 @@ class ConfigPanel(QGroupBox):
 
         self.mapping_group = MappingGroup()
         self.mapping_group.setObjectName("BorderlessGroup")
-        self.mapping_group.set_mapping(self.config.get("mapeamento", {}))
+        self.mapping_group.set_mapping(self.config.mapeamento)
         self.mapping_group.changed.connect(self._save_config)
         main_layout.addWidget(self.mapping_group, 1)
 
@@ -43,16 +43,14 @@ class ConfigPanel(QGroupBox):
 
         container = QWidget()
         vbox = QVBoxLayout(container)
-        vbox.setContentsMargins(0, 0, 0, 0)
-        vbox.addStretch(15)
+        vbox.setContentsMargins(10, 0, 10, 0)
 
         line = QFrame()
-        line.setFrameShape(QFrame.VLine)
-        line.setFrameShadow(QFrame.Sunken)
+        line.setFrameShape(QFrame.Shape.VLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
         line.setStyleSheet("color: #E0E6ED; border: 1px solid #E0E6ED;")
-        vbox.addWidget(line, 70)
+        vbox.addWidget(line)
 
-        vbox.addStretch(15)
         return container
 
     def _save_config(self, *args):
@@ -61,3 +59,15 @@ class ConfigPanel(QGroupBox):
         self.mapping_group.update_config(self.config)
 
         self.config_changed.emit()
+
+    def set_field_errors(self, field_errors: dict):
+        """Propaga erros para os grupos de configuração"""
+        self.contract_group.set_field_errors(field_errors)
+        self.coords_group.set_field_errors(field_errors)
+        self.mapping_group.set_field_errors(field_errors)
+
+    def clear_errors(self):
+        """Limpa erros de todos os grupos internos"""
+        self.contract_group.clear_errors()
+        self.coords_group.clear_errors()
+        self.mapping_group.clear_errors()
