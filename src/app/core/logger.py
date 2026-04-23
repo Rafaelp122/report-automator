@@ -1,16 +1,12 @@
 import logging
-import os
-from datetime import datetime
+from src.app.core.constants import APP_LOG_PATH
 
-def setup_logger(name="report_automator", log_file="app.log", level=logging.INFO):
-    """Configura o logger principal da aplicação."""
+def setup_logger(name="rdo_automator", log_path=None, level=logging.INFO):
+    """Configura o logger principal da aplicação usando caminhos do constants.py."""
+    path = log_path or APP_LOG_PATH
     
-    # Cria o diretório de logs se não existir
-    log_dir = "logs"
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    
-    log_path = os.path.join(log_dir, log_file)
+    # Garante que o diretório de logs existe
+    path.parent.mkdir(parents=True, exist_ok=True)
     
     # Formato do log: Data - Nome - Nível - Mensagem
     formatter = logging.Formatter(
@@ -22,15 +18,15 @@ def setup_logger(name="report_automator", log_file="app.log", level=logging.INFO
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
 
-    # Handler para o arquivo (rotativo simples com data no nome ou apenas um arquivo fixo)
-    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    # Handler para o arquivo
+    file_handler = logging.FileHandler(str(path), encoding="utf-8")
     file_handler.setFormatter(formatter)
 
-    # Configura o logger raiz ou um específico
+    # Configura o logger
     logger = logging.getLogger(name)
     logger.setLevel(level)
     
-    # Evita duplicidade de handlers se a função for chamada múltiplas vezes
+    # Evita duplicidade de handlers
     if not logger.handlers:
         logger.addHandler(console_handler)
         logger.addHandler(file_handler)
