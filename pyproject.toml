@@ -1,6 +1,6 @@
 [project]
-name = "report-automator"
-version = "0.1.0"
+name = "rdo-automator"
+version = "1.0.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -8,6 +8,7 @@ dependencies = [
     "PySide6>=6.0.0",
     "openpyxl>=3.1.0",
     "pandas>=2.0.0",
+    "pydantic>=2.13.3",
     "pyinstaller>=6.0.0",
     "tomli-w>=1.2.0",
 ]
