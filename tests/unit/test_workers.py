@@ -1,64 +1,55 @@
 import pytest
-import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from src.app.ui.workers.processor_worker import ProcessorWorker
+from src.app.core.config_models import ReportConfig, FilesConfig
+from src.app.core.report_service import ReportService
 
 class TestProcessorWorker:
     
-    def test_run_success(self, qtbot, tmp_path, monkeypatch):
-        os.chdir(tmp_path)
+    def test_run_success(self, qtbot, tmp_path):
+        dados_path = tmp_path / "dados.xlsx"
+        dados_path.touch()
         
-        config_content = {
-            'arquivos': {
-                'dados_origem': 'dados.xlsx',
-                'default_template': 'default.xlsx',
-                'user_template': 'user.xlsx'
-            }
-        }
-        with open("config.toml", "wb") as f:
-            import tomli_w
-            f.write(tomli_w.dumps(config_content).encode())
-            
-        (tmp_path / "dados.xlsx").touch()
-        (tmp_path / "default.xlsx").touch()
+        config = ReportConfig(
+            arquivos=FilesConfig(
+                dados_origem=str(dados_path)
+            )
+        )
         
-        worker = ProcessorWorker()
+        mock_service = MagicMock(spec=ReportService)
+        mock_service.generate_report.return_value = "resultado.xlsx"
+        
+        worker = ProcessorWorker(config, mock_service)
         
         with qtbot.waitSignal(worker.finished, timeout=2000) as blocker:
-            with patch('src.app.ui.workers.processor_worker.ReportService') as MockService:
-                mock_service_inst = MockService.return_value
-                mock_service_inst.generate_report.return_value = "resultado.xlsx"
-                
-                worker.run()
+            worker.run()
                 
         assert blocker.args == ["resultado.xlsx"]
-        mock_service_inst.generate_report.assert_called_once()
+        mock_service.generate_report.assert_called_once()
 
-    def test_run_config_missing(self, qtbot, tmp_path):
-        os.chdir(tmp_path)
-        # config missing -> vai pegar valores vazios
-        worker = ProcessorWorker()
+    def test_run_service_error(self, qtbot):
+        config = ReportConfig()
+        mock_service = MagicMock(spec=ReportService)
+        mock_service.generate_report.side_effect = Exception("Erro genérico")
+        
+        worker = ProcessorWorker(config, mock_service)
         with qtbot.waitSignal(worker.error, timeout=2000) as blocker:
             worker.run()
         
-        assert "Arquivo de dados não encontrado" in blocker.args[0]
+        assert "Erro genérico" in blocker.args[0]
 
-    def test_run_data_file_missing(self, qtbot, tmp_path):
-        os.chdir(tmp_path)
-        config_content = {
-            'arquivos': {
-                'dados_origem': 'missing_data.xlsx',
-                'default_template': 'default.xlsx'
-            }
-        }
-        with open("config.toml", "wb") as f:
-            import tomli_w
-            f.write(tomli_w.dumps(config_content).encode())
-            
-        worker = ProcessorWorker()
+    def test_run_data_file_missing_in_service(self, qtbot):
+        config = ReportConfig(
+            arquivos=FilesConfig(dados_origem='missing_data.xlsx')
+        )
+        # Usamos o serviço real aqui para testar a integração se desejado, 
+        # mas como é teste unitário do worker, mockamos o serviço para lançar o erro esperado
+        mock_service = MagicMock(spec=ReportService)
+        mock_service.generate_report.side_effect = FileNotFoundError("Arquivo de origem não encontrado")
         
-        # We don't need to patch here because the service will raise FileNotFoundError
+        worker = ProcessorWorker(config, mock_service)
+        
         with qtbot.waitSignal(worker.error, timeout=2000) as blocker:
             worker.run()
             
-        assert "Arquivo de dados não encontrado" in blocker.args[0]
+        assert "Arquivo de origem não encontrado" in blocker.args[0]

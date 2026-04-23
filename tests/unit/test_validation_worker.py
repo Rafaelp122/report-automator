@@ -1,8 +1,7 @@
 import pytest
-import os
-import tomli_w
 from src.app.ui.workers.validation_worker import ValidationWorker
 from src.app.core.validator import ReportValidator
+from src.app.core.config_models import ReportConfig, FilesConfig, PositionsConfig, ExtractionConfig
 
 class TestValidationWorker:
     
@@ -17,30 +16,23 @@ class TestValidationWorker:
         assert validator.is_valid_excel_coordinate("ZZZZ1") is False
 
     def test_run_validation_invalid_coordinate(self, qtbot, tmp_path):
-        os.chdir(tmp_path)
-        config_content = {
-            'arquivos': {
-                'dados_origem': 'dados.xlsx',
-            },
-            'posicoes': {
-                'celula_data_atual': 'INVALID'
-            },
-            'mapeamento': {
-                'teste': 'B10'
-            },
-            'extração': {
-                'colunas': ['Data', 'Servico']
-            }
-        }
-        with open("config.toml", "wb") as f:
-            f.write(tomli_w.dumps(config_content).encode())
-            
-        (tmp_path / "dados.xlsx").touch()
+        dados_path = tmp_path / "dados.xlsx"
+        dados_path.touch()
         
-        worker = ValidationWorker()
+        config = ReportConfig(
+            arquivos=FilesConfig(dados_origem=str(dados_path)),
+            posicoes=PositionsConfig(celula_data_atual='INVALID'),
+            extracao=ExtractionConfig(colunas=['Data', 'Servico']),
+            mapeamento={'teste': 'B10'}
+        )
+            
+        validator = ReportValidator()
+        worker = ValidationWorker(config, validator)
+        
         with qtbot.waitSignal(worker.validation_finished, timeout=2000) as blocker:
             worker.run()
             
-        sucesso, erros = blocker.args
+        sucesso, erros, field_errors = blocker.args
         assert sucesso is False
-        assert any("configurada para" in e and "inválida" in e for e in erros)
+        assert any("Célula" in e and "inválida" in e for e in erros)
+        assert "celula_data_atual" in field_errors
